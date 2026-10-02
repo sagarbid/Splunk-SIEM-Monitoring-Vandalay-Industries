@@ -1,0 +1,23 @@
+# ============================================================
+# Splunk SIEM Monitoring — Vandalay Industries
+# SPL searches referenced in README.md, extracted into their own file
+# so they can be copy-pasted or version-controlled independently.
+# ============================================================
+
+# --- 1. DDoS — abnormal request volume per source IP ---
+index=apache_logs
+| timechart span=1m count by clientip
+| where count > 1000
+
+
+# --- 2. Brute-force — repeated failed AD logons across endpoints ---
+index=windows EventCode=4625
+| stats count by src_ip, user, ComputerName
+| where count > 20
+| sort -count
+
+
+# --- 3. Vulnerability correlation — Nessus findings vs. active web traffic ---
+index=nessus severity=Critical OR severity=High
+| join host [search index=apache_logs]
+| table host, vulnerability, last_seen, http_status
